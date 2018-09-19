@@ -1,5 +1,5 @@
 #!/bin/env python
-import argparse
+import argparse, subprocess
 
 parser = argparse.ArgumentParser(description="read/write files as root on any Android device")
 parser.add_argument("action", choices=["push", "pull"], help="pull to copy from device, push to copy to device")
@@ -11,12 +11,42 @@ parser.add_argument("-c", "--check", help="calculate and compare hashsum after t
 args = parser.parse_args()
 
 def push():
-    pass
+    with open(args.source, "r") as file:
+        result = subprocess.run(['adb', 'shell', 'su -c', 'dd of=/'+args.target], stdin=file)
+        if result.returncode == 0:
+            print("Success, transfered %s" % filename)
+
+    if args.mode:
+        subprocess.run(['adb', 'shell', 'su -c', 'chmod', args.mode, args.target]) #TODO return code
+    if args.mode:
+        subprocess.run(['adb', 'shell', 'su -c', 'chown', args.owner, args.target])
+    
+    if args.check:
+        hash_src = subprocess.run(["sha256sum", args.source], stdout=subprocess.PIPE).stdout.decode('utf-8')[:64]
+        hash_dest = subprocess.run(['adb', 'shell', "su -c", "sha256sum", args.target], stdout=subprocess.PIPE).stdout.decode('utf-8')[:64]
+        if hash_src == hash_dest:
+            print("Integrity ok: %s => %s (%s)" % (args.source, args.target, hash_src))
+        else:
+            print("Check failed, hashsum mismatch: %s vs %s" % (hash_src, hash_dest))
+
+
 def pull():
-    pass
+    print("Pulling " + args.source)
+    with open(args.target, "w+") as file:
+        subprocess.run(['adb', 'shell', "su -c", "cat", args.source], stdout=file) # TODO check return code
+        
+    if args.check:
+        hash_src = subprocess.run(['adb', 'shell', "su -c", "sha256sum", args.source], stdout=subprocess.PIPE).stdout.decode('utf-8')[:64]
+        hash_dest = subprocess.run(["sha256sum", args.target], stdout=subprocess.PIPE).stdout.decode('utf-8')[:64]
+        if hash_src == hash_dest:
+            print("Integrity ok: %s => %s (%s)" % (args.source, args.target, hash_src))
+        else:
+            print("Check failed, hashsum mismatch: %s vs %s" % (hash_src, hash_dest))
+            
+    if args.mode or args.owner:
+        print("Warning: mode/owner ignored for pull!")
 
 if args.action == "push":
     push()
 elif args.action == "pull":
     pull()
-
