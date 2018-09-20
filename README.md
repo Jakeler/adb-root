@@ -1,4 +1,4 @@
-# adb root
+# ADB root push/pull
 This script allows to push/pull files as root over adb (rooted Android device with working busybox/toybox required).
 ```
 usage: adb-root.py [-h] [-m MODE] [-o OWNER] [-c] [--verbose]
@@ -22,7 +22,7 @@ optional arguments:
 ```
 
 ### Technical background
-(TODO: blog post)
+Detailed: <https://blog.ja-ke.tech/2018/09/20/adb-root.html>
 
 It reads the file to stdout, sends the stream over adb to a root shell, which writes it with dd to disk/flash. 
 Changing mode/owner and is done with directly calling chmod/chown and the hashsum check with sha256.
