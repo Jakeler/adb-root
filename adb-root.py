@@ -38,7 +38,7 @@ def push():
 def pull():
     print("Pulling " + args.source)
     with open(args.target, "w+") as file:
-        result = subprocess.run(['adb', 'shell', "su -c", "cat", args.source], stdout=file)
+        result = subprocess.run(['adb', 'shell', "su -c", "dd if="+args.source], stdout=file)
         log_exitcode(result.returncode)
         
     if args.check:
