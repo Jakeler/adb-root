@@ -10,16 +10,21 @@ parser.add_argument("-o", "--owner", help="set owner and group of file (chown no
 parser.add_argument("-c", "--check", help="calculate and compare hashsum after transfer",  action="store_true")
 args = parser.parse_args()
 
+def log_exitcode(code):
+    if code != 0:
+            print("Error, exitcode: %d" % code)
+
 def push():
     with open(args.source, "r") as file:
         result = subprocess.run(['adb', 'shell', 'su -c', 'dd of=/'+args.target], stdin=file)
-        if result.returncode == 0:
-            print("Success, transfered %s" % filename)
+        log_exitcode(result.returncode)
 
     if args.mode:
-        subprocess.run(['adb', 'shell', 'su -c', 'chmod', args.mode, args.target]) #TODO return code
-    if args.mode:
-        subprocess.run(['adb', 'shell', 'su -c', 'chown', args.owner, args.target])
+        result = subprocess.run(['adb', 'shell', 'su -c', 'chmod', args.mode, args.target])
+        log_exitcode(result.returncode)
+    if args.owner:
+        result = subprocess.run(['adb', 'shell', 'su -c', 'chown', args.owner, args.target])
+        log_exitcode(result.returncode)
     
     if args.check:
         hash_src = subprocess.run(["sha256sum", args.source], stdout=subprocess.PIPE).stdout.decode('utf-8')[:64]
@@ -33,7 +38,8 @@ def push():
 def pull():
     print("Pulling " + args.source)
     with open(args.target, "w+") as file:
-        subprocess.run(['adb', 'shell', "su -c", "cat", args.source], stdout=file) # TODO check return code
+        result = subprocess.run(['adb', 'shell', "su -c", "cat", args.source], stdout=file)
+        log_exitcode(result.returncode)
         
     if args.check:
         hash_src = subprocess.run(['adb', 'shell', "su -c", "sha256sum", args.source], stdout=subprocess.PIPE).stdout.decode('utf-8')[:64]
