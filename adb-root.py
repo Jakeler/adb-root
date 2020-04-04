@@ -63,7 +63,7 @@ def yes_or_no(question):
 
 def pull():
     logging.info("Started pulling %s", args.source)
-    filelist = subprocess.run(['adb', 'shell', "su -c", "ls "+args.source], encoding='utf-8', stdout=subprocess.PIPE)
+    filelist = subprocess.run(['adb', 'shell', "su -c \"", "ls "+args.source + "\""], encoding='utf-8', stdout=subprocess.PIPE)
     for source in filelist.stdout.split('\n'):
          if source != '':
             source_filename=os.path.basename(source)
@@ -72,10 +72,13 @@ def pull():
             if os.path.isfile(destination): 
                 if yes_or_no("Destination file exits. Ovewrite it ?"):
                     with open(destination, "w+") as file:
-                       result = subprocess.run(['adb', 'shell', "su -c", "dd if="+source], stdout=file)
+                       result = subprocess.run(['adb', 'shell', "su -c \"", "dd if="+source + "\""], stdout=file)
                        log_exitcode("Transfer", result)
-    return
-        
+            else:
+               with open(destination, "w+") as file:
+                   result = subprocess.run(['adb', 'shell', "su -c \"", "dd if="+source + "\""], stdout=file)
+                   log_exitcode("Transfer", result)
+
     if args.check:
         hash_check(args.target, args.source)
             
