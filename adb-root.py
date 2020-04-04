@@ -1,5 +1,5 @@
-#!/bin/env python
-import argparse, subprocess, logging
+#!/usr/bin/env python3
+import argparse, subprocess, logging, os
 
 parser = argparse.ArgumentParser(description="read/write files as root on any Android device")
 parser.add_argument("action", choices=["push", "pull"], help="pull to copy from device, push to copy to device")
@@ -52,14 +52,33 @@ def push():
     
     if args.check:
         hash_check(args.source, args.target)
-
+def yes_or_no(question):
+    reply = str(input(question+' (y/n): ')).lower().strip()
+    if reply[0] == 'y':
+        return True
+    if reply[0] == 'n':
+        return False
+    else:
+        return yes_or_no("Please enter y or n:")
 
 def pull():
     logging.info("Started pulling %s", args.source)
-    with open(args.target, "w+") as file:
-        result = subprocess.run(['adb', 'shell', "su -c", "dd if="+args.source], stdout=file)
-        log_exitcode("Transfer", result)
-        
+    filelist = subprocess.run(['adb', 'shell', "su -c \"", "ls "+args.source + "\""], encoding='utf-8', stdout=subprocess.PIPE)
+    for source in filelist.stdout.split('\n'):
+         if source != '':
+            source_filename=os.path.basename(source)
+            destination=args.target + "/" + source_filename
+            print("Copying " + source  + " to " + destination)
+            if os.path.isfile(destination): 
+                if yes_or_no("Destination file exits. Ovewrite it ?"):
+                    with open(destination, "w+") as file:
+                       result = subprocess.run(['adb', 'shell', "su -c \"", "dd if="+source + "\""], stdout=file)
+                       log_exitcode("Transfer", result)
+            else:
+               with open(destination, "w+") as file:
+                   result = subprocess.run(['adb', 'shell', "su -c \"", "dd if="+source + "\""], stdout=file)
+                   log_exitcode("Transfer", result)
+
     if args.check:
         hash_check(args.target, args.source)
             
